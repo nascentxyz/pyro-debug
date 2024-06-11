@@ -7,6 +7,16 @@ const GraphViewer = ({ graph, containerId, onNodeHighlight, diffHighlights, sour
   const lazySortedLocsRef = useRef(null);
 
   const highlightNodes = (elements, lineages, allNodes) => {
+
+    // If elements is null, make all nodes gray and exit
+    if (!elements) {
+      // Apply the filter to all nodes initially
+      allNodes.forEach((node) => {
+        node.setAttribute("style", "filter: grayscale(100%) brightness(50%)");
+      });
+      return;
+    }
+
     // Ensure elements is an array
     if (!Array.isArray(elements)) {
       elements = [elements];
@@ -281,6 +291,9 @@ const GraphViewer = ({ graph, containerId, onNodeHighlight, diffHighlights, sour
         const lineages = new Map();
         const closestNodesNodes = closestNodes.map(node => node.node);
         highlightNodes(closestNodesNodes, lineages, allNodes);
+      } else {
+        const allNodes = Array.from(document.querySelectorAll('svg .node:not(.subgraph)'));
+        highlightNodes(null, new Map(), allNodes);
       }
     }
   }, [sourceHoverPos]);
