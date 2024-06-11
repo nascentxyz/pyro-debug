@@ -1,6 +1,5 @@
 import { StateField } from '@codemirror/state';
-import { Decoration } from '@codemirror/view';
-import { EditorView } from '@codemirror/view';
+import { Decoration, EditorView, hoverTooltip } from '@codemirror/view';
 import React, { useEffect, useRef } from 'react';
 import { basicSetup } from 'codemirror';
 import { EditorState } from '@codemirror/state';
@@ -10,22 +9,24 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { RangeSetBuilder } from '@codemirror/state';
 
 // Add the highlight theme to the editor state
-const SourceViewer = ({ sourceCode, locToHighlight, forksToHighlight }) => {
+const SourceViewer = ({ sourceCode, fileNumber, locToHighlight, forksToHighlight, onHover }) => {
     const editorRef = useRef(null);
     const viewRef = useRef(null);
-  
+    const fileNumberRef = useRef(null);
+
     useEffect(() => {
-      if (editorRef.current && sourceCode !== null && sourceCode !== undefined) {
+      if (editorRef.current && sourceCode !== null && sourceCode !== undefined && fileNumber !== null && fileNumber !== undefined) {
+        // Save the file_number in the ref
+        fileNumberRef.current = Number(fileNumber);
+
         let start = 0;
         let end = 0;
-        let file_number = 0;
         if (locToHighlight) {
             const { file_number: fn, start: s, end: e } = locToHighlight;
             const parsedFileNumber = parseInt(fn, 10);
             const parsedStart = parseInt(s, 10);
             const parsedEnd = parseInt(e, 10);
             if (!isNaN(parsedFileNumber) && !isNaN(parsedStart) && !isNaN(parsedEnd)) {
-                file_number = parsedFileNumber;
                 start = parsedStart;
                 end = parsedEnd;
             } else {
@@ -81,6 +82,12 @@ const SourceViewer = ({ sourceCode, locToHighlight, forksToHighlight }) => {
             provide: f => EditorView.decorations.from(f)
         });
 
+        const hoverExtension = hoverTooltip((view, pos) => {
+          // console.log("hovering, view: ", view, "pos: ", pos);
+          onHover(fileNumberRef.current, pos);
+          return null; // No tooltip display
+      }, { hoverTime: 50 }); // hover activates after 50ms
+
         const state = EditorState.create({
           doc: sourceCode,
           extensions: [
@@ -89,6 +96,7 @@ const SourceViewer = ({ sourceCode, locToHighlight, forksToHighlight }) => {
             solidity,
             oneDark,
             highlightField,
+            hoverExtension,
           ]
         });
   
@@ -97,13 +105,20 @@ const SourceViewer = ({ sourceCode, locToHighlight, forksToHighlight }) => {
           state,
           parent: editorRef.current
         });
+
+        // Scroll to the highlighted location
+        if (start !== 0 || end !== 0) {
+          viewRef.current.dispatch({
+            effects: EditorView.scrollIntoView(start, { y: 'center' })
+          });
+        }
   
         // Cleanup function to destroy the view when the component unmounts
         return () => {
           viewRef.current.destroy();
         };
       }
-    }, [sourceCode, locToHighlight, forksToHighlight]);
+    }, [sourceCode, locToHighlight, forksToHighlight, onHover]);
   
     return (
       <div ref={editorRef} className="editor-container" />

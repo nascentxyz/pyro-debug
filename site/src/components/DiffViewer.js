@@ -15,20 +15,13 @@ const DiffViewer = ({ graph1, graph2, onNewGraph, onDiffHighlights }) => {
   useEffect(() => {
     if (graph1 && graph2) {
       const highlights = generateDiffedGraph(graph1, graph2);
-      // console.log("highlights", highlights);
       onDiffHighlights(highlights);
-
-      // if (highlights.length > 0) {
-      //   console.log("calling onDiffHighlights");
-      //   onDiffHighlights(highlights);
-      // }
     }
   }, [graph1, graph2]);
 
   if (!graph1 || !graph2) return null;
 
   const diff = diffTrimmedLines(graph1, graph2);
-  // console.log("diff", diff);
   const contextLines = 2;
 
   const getTrimmedDiff = (diff, contextLines) => {
@@ -77,24 +70,18 @@ const DiffViewer = ({ graph1, graph2, onNewGraph, onDiffHighlights }) => {
   const getDiffHighlights = (diff) => {
     const diffHighlights = [];
     const numbersSet = new Set();
-    // console.log("getting highlights for diff", diff);
     diff.forEach(part => {
       if (part.added) {
-        // console.log("getting highlights for part", part);
         const lines = part.value.split('\n');
         lines.forEach(line => {
-          // console.log("getting highlights for line", line);
           let match = line.match(/^(\d+)\(/);
           if (match) {
-            // console.log("adding highlight", match[1]);
             numbersSet.add(match[1]);
           }
           // Match the second pattern: 25 -->|"Context(Subcontext)"| 27
           match = line.match(/(\d+)\s*-->\|.*\|\s*(\d+)/);
           if (match) {
-            // console.log("adding highlight", match[1]);
             numbersSet.add(match[1]);
-            // console.log("adding highlight", match[2]);
             numbersSet.add(match[2]);
           }
         });

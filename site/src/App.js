@@ -20,6 +20,7 @@ function App() {
   const layoutRef = useRef(null);
   const [model, setModel] = useState(Model.fromJson(baseLayoutConfig));
   const [diffHighlights, setDiffHighlights] = useState([]);
+  const [sourceHoverPos, setSourceHoverPos] = useState(null);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -27,10 +28,15 @@ function App() {
       const graph_json = await graph_response.json();
       const source_response = await fetch('http://127.0.0.1:8545/getsources');
       const source_json = await source_response.json();
-      setGraphs(graph_json);
-      setSources(source_json);
-      // console.log("graphs length: ", graph_json.length);
-      // console.log("sources", source_json);
+
+      // Only update state if the fetched data is different
+      if (JSON.stringify(graph_json) !== JSON.stringify(graphs)) {
+        setGraphs(graph_json);
+      }
+      if (JSON.stringify(source_json) !== JSON.stringify(sources)) {
+        setSources(source_json);
+      }
+
       if (watchUpdates && graph_json.length > 1) {
         setCurrentIndex(graph_json.length - 1);
       }
@@ -39,7 +45,7 @@ function App() {
     fetchHistory();
     const intervalId = setInterval(fetchHistory, 1000); // Fetch new history every 1 second
     return () => clearInterval(intervalId); // Cleanup on component unmount
-  }, [watchUpdates]);
+  }, [watchUpdates, graphs, sources]);
 
   useEffect(() => {
     document.body.className = 'dark-mode'; // Set dark mode by default
@@ -84,11 +90,35 @@ function App() {
     }
   }, [sources]);
 
+  useEffect(() => {
+    if (locToHighlight) {
+      const updatedConfig = { ...model.toJson() };
+      let { file_number } = locToHighlight;
+      file_number = Number(file_number);
+
+      const updateTabsetSelection = (node) => {
+        if (node.type === "tabset") {
+          const tabIndex = node.children.findIndex(
+            (child) => child.type === "tab" && child.component === "SourceViewer" && child.config.file_number === file_number
+          );
+          if (tabIndex !== -1) {
+            node.selected = tabIndex;
+          }
+        } else if (node.children) {
+          node.children.forEach(updateTabsetSelection);
+        }
+      };
+
+      updatedConfig.layout.children.forEach(updateTabsetSelection);
+      setModel(Model.fromJson(updatedConfig));
+    }
+  }, [locToHighlight]);
+
   const factory = (node) => {
     const component = node.getComponent();
     const config = node.getConfig();
     if (component === "GraphViewer") {
-      return <GraphViewer graph={config.graph} containerId={config.containerId} onNodeHighlight={handleNodeHighlight} diffHighlights={diffHighlights} />;
+      return <GraphViewer graph={config.graph} containerId={config.containerId} onNodeHighlight={handleNodeHighlight} diffHighlights={diffHighlights} sourceHoverPos={sourceHoverPos} />;
     } else if (component === "DiffViewer") {
       return <DiffViewer graph1={config.graph1} graph2={config.graph2} onNewGraph={handleNewGraph} onDiffHighlights={handleDiffHighlights} />;
     } else if (component === "HistoryControls") {
@@ -103,7 +133,7 @@ function App() {
     } else if (component === "SourceViewer") {  
       const loc = locToHighlight && Number(locToHighlight.file_number) === Number(config.file_number) ? locToHighlight : null;
       const filteredForksToHighlight = forksToHighlight.filter(fork => Number(fork.file_number) === Number(config.file_number));
-      return <SourceViewer sourceCode={config.sourceCode} locToHighlight={loc} forksToHighlight={filteredForksToHighlight} />;
+      return <SourceViewer sourceCode={config.sourceCode} fileNumber={config.file_number} locToHighlight={loc} forksToHighlight={filteredForksToHighlight} onHover={handleHover} />;
     }
   };
 
@@ -132,10 +162,12 @@ function App() {
   };
 
   const handleDiffHighlights = (diffHighlights) => {
-    // console.log("handleDiffHighlights");
     setDiffHighlights(diffHighlights);
   };
 
+  const handleHover = (file_number, pos) => {
+    setSourceHoverPos({ file_number: file_number, pos: pos });
+  };
 
   return (
     <div className="App">
