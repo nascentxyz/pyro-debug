@@ -117,7 +117,8 @@ const GraphViewer = ({ graph, containerId, onNodeHighlight, diffHighlights, sour
       });
     }
     mermaid.initialize({
-      maxTextSize: 1000000
+      maxTextSize: 1000000,
+      maxEdges: 10000,
     });
 
     try {
@@ -127,14 +128,19 @@ const GraphViewer = ({ graph, containerId, onNodeHighlight, diffHighlights, sour
       element.className = 'graph-content';
       container.appendChild(element);
 
-      // Initialize panzoom only once
-      if (!panzoomRef.current) {
-        panzoomRef.current = Panzoom(element, {
-          maxScale: 30,
-          step: 0.07,
-        });
-        element.parentElement.addEventListener('wheel', panzoomRef.current.zoomWithWheel);
+      // Clear previous Panzoom instance if it exists
+      if (panzoomRef.current) {
+        panzoomRef.current.destroy();
+        panzoomRef.current = null;
       }
+
+      // Initialize panzoom
+      panzoomRef.current = Panzoom(element, {
+        maxScale: 200,
+        step: 0.07,
+      });
+      element.parentElement.addEventListener('wheel', panzoomRef.current.zoomWithWheel);
+
 
       // Your node highlighting and event listener logic here
       // Highlighting logic
