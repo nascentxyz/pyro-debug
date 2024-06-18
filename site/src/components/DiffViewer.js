@@ -31,27 +31,43 @@ const DiffViewer = ({ graph1, graph2, onNewGraph, onDiffHighlights }) => {
     const addContextLines = (lines, start, end) => {
       for (let i = start; i < end; i++) {
         if (i >= 0 && i < lines.length) {
-          trimmedDiff.push({ value: lines[i] + '\n', added: false, removed: false });
+          trimmedDiff.push({
+            value: lines[i] + '\n',
+            added: false,
+            removed: false,
+          });
         }
       }
     };
 
     diff.forEach((part, index) => {
-      const lines = part.value.split('\n').filter((line, i, arr) => i < arr.length - 1 || line.length > 0);
+      const lines = part.value
+        .split('\n')
+        .filter((line, i, arr) => i < arr.length - 1 || line.length > 0);
 
       if (part.added || part.removed) {
         if (contextBuffer.length > 0) {
-          addContextLines(contextBuffer, Math.max(0, contextBuffer.length - contextLines), contextBuffer.length);
+          addContextLines(
+            contextBuffer,
+            Math.max(0, contextBuffer.length - contextLines),
+            contextBuffer.length
+          );
           contextBuffer = [];
         }
 
-        lines.forEach(line => {
-          trimmedDiff.push({ value: line + '\n', added: part.added, removed: part.removed });
+        lines.forEach((line) => {
+          trimmedDiff.push({
+            value: line + '\n',
+            added: part.added,
+            removed: part.removed,
+          });
         });
 
         const nextPart = diff[index + 1];
         if (nextPart && !nextPart.added && !nextPart.removed) {
-          const nextLines = nextPart.value.split('\n').filter((line, i, arr) => i < arr.length - 1 || line.length > 0);
+          const nextLines = nextPart.value
+            .split('\n')
+            .filter((line, i, arr) => i < arr.length - 1 || line.length > 0);
           addContextLines(nextLines, 0, contextLines);
         }
       } else {
@@ -62,7 +78,9 @@ const DiffViewer = ({ graph1, graph2, onNewGraph, onDiffHighlights }) => {
       }
     });
 
-    return trimmedDiff.length ? trimmedDiff : [{ value: 'No changes in the diff\n', added: false, removed: false }];
+    return trimmedDiff.length
+      ? trimmedDiff
+      : [{ value: 'No changes in the diff\n', added: false, removed: false }];
   };
 
   const trimmedDiff = getTrimmedDiff(diff, contextLines);
@@ -70,10 +88,10 @@ const DiffViewer = ({ graph1, graph2, onNewGraph, onDiffHighlights }) => {
   const getDiffHighlights = (diff) => {
     const diffHighlights = [];
     const numbersSet = new Set();
-    diff.forEach(part => {
+    diff.forEach((part) => {
       if (part.added) {
         const lines = part.value.split('\n');
-        lines.forEach(line => {
+        lines.forEach((line) => {
           let match = line.match(/^(\d+)\(/);
           if (match) {
             numbersSet.add(match[1]);
@@ -88,14 +106,13 @@ const DiffViewer = ({ graph1, graph2, onNewGraph, onDiffHighlights }) => {
       }
     });
 
-    numbersSet.forEach(number => {
+    numbersSet.forEach((number) => {
       // console.log("pushing highlight", number);
       diffHighlights.push(`style ${number}`);
     });
 
     return diffHighlights;
   };
-
 
   return (
     <div className="graph-diff">
@@ -104,8 +121,12 @@ const DiffViewer = ({ graph1, graph2, onNewGraph, onDiffHighlights }) => {
           <span
             key={index}
             style={{
-              backgroundColor: part.added ? 'var(--added-background-color)' : part.removed ? 'var(--removed-background-color)' : 'var(--background-color)',
-              whiteSpace: 'pre-wrap' // Add this line to preserve new lines
+              backgroundColor: part.added
+                ? 'var(--added-background-color)'
+                : part.removed
+                  ? 'var(--removed-background-color)'
+                  : 'var(--background-color)',
+              whiteSpace: 'pre-wrap', // Add this line to preserve new lines
             }}
           >
             {part.value}
