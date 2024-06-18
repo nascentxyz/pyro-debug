@@ -17,15 +17,20 @@ struct SourceMessage {
     source: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
+struct ArenaMessage {
+    arena: String,
+}
 struct AppState {
     graphs: Mutex<VecDeque<GraphMessage>>,
     /// unique file_number, path, source
     sources: Mutex<HashSet<SourceMessage>>,
+    /// most up to date arena
+    arena: Mutex<ArenaMessage>,
 }
 
 #[post("/addgraph")]
 async fn add_graph(data: web::Json<GraphMessage>, state: web::Data<AppState>) -> impl Responder {
-    info!("got graph");
     let mut history = state.graphs.lock().unwrap();
     let graph_string = data.into_inner();
     // dbg!(&graph_string);
@@ -33,24 +38,31 @@ async fn add_graph(data: web::Json<GraphMessage>, state: web::Data<AppState>) ->
     if history.len() > 10_000 {
         history.pop_front(); // Keep the history manageable
     }
-    info!("After add history len: {}", history.len());
+    info!("got graph, after add history len: {}", history.len());
     HttpResponse::Ok()
 }
 
 #[post("/addsource")]
 async fn add_source(data: web::Json<SourceMessage>, state: web::Data<AppState>) -> impl Responder {
-    info!("got source");
     let mut sources = state.sources.lock().unwrap();
     let source_string = data.into_inner();
     // dbg!(&source_string);
     sources.insert(source_string);
-    info!("After add sources len: {}", sources.len());
+    info!("got source, after add sources len: {}", sources.len());
+    HttpResponse::Ok()
+}
+
+#[post("/updatearena")]
+async fn update_arena(data: web::Json<ArenaMessage>, state: web::Data<AppState>) -> impl Responder {
+    let mut arena = state.arena.lock().unwrap();
+    let arena_string = data.into_inner();
+    *arena = arena_string;
+    info!("got arena");
     HttpResponse::Ok()
 }
 
 #[post("/clear")]
 async fn clear(state: web::Data<AppState>) -> impl Responder {
-    info!("clearing all");
     let mut history = state.graphs.lock().unwrap();
     history.clear();
     let mut sources = state.sources.lock().unwrap();
@@ -61,18 +73,24 @@ async fn clear(state: web::Data<AppState>) -> impl Responder {
 
 #[get("/getgraphs")]
 async fn get_graphs(state: web::Data<AppState>) -> impl Responder {
-    debug!("get_graphs");
     let graphs = state.graphs.lock().unwrap();
-    debug!("graphs len: {}", graphs.len());
+    debug!("get_graphs, graphs len: {}", graphs.len());
     HttpResponse::Ok().json(&*graphs)
 }
 
 #[get("/getsources")]
 async fn get_sources(state: web::Data<AppState>) -> impl Responder {
-    debug!("get_sources");
     let sources = state.sources.lock().unwrap();
-    debug!("sources len: {}", sources.len());
+    debug!("get_sources, sources len: {}", sources.len());
     HttpResponse::Ok().json(&*sources)
+}
+
+#[get("/getarena")]
+async fn get_arena(state: web::Data<AppState>) -> impl Responder {
+    debug!("get_arena");
+    let arena = state.arena.lock().unwrap();
+    // debug!("arena: {:?}", arena);
+    HttpResponse::Ok().json(&*arena)
 }
 
 
@@ -84,6 +102,7 @@ async fn main() -> std::io::Result<()> {
     let shared_state = web::Data::new(AppState {
         graphs: Mutex::new(VecDeque::new()),
         sources: Mutex::new(HashSet::new()),
+        arena: Mutex::new(ArenaMessage { arena: "Empty".to_string() }),
     });
 
     HttpServer::new(move || {
@@ -91,8 +110,10 @@ async fn main() -> std::io::Result<()> {
             .app_data(shared_state.clone()) // Clone the shared state for each worker
             .service(add_graph)
             .service(add_source)
+            .service(update_arena)
             .service(get_graphs)
             .service(get_sources)
+            .service(get_arena)
             .service(clear)
             .service(actix_files::Files::new("/", "../site/build").index_file("index.html"))
     })

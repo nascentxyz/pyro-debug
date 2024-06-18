@@ -71,6 +71,22 @@ body.dark-mode .graph-diff {
   height: 100%;
 }
 
+.arena-content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.arena-visualizer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
 .graph-content {
   flex: 1;
   display: flex;
@@ -107,6 +123,9 @@ body.dark-mode .graph-diff {
 }
 
 .diff-highlight {
-  background-color: #b8a75a; 
+  background-color: #b8a75a;
 }
 
+.arena-edge-excluded {
+  filter: brightness(0%);
+}

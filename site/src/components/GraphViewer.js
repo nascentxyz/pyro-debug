@@ -2,19 +2,28 @@ import React, { useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
 import Panzoom from '@panzoom/panzoom';
 
-const GraphViewer = ({ graph, containerId, onNodeHighlight, diffHighlights, sourceHoverPos }) => {
+const GraphViewer = ({
+  graph,
+  onNodeHighlight,
+  diffHighlights,
+  sourceHoverPos,
+}) => {
   const containerRef = useRef(null);
   const lazySortedLocsRef = useRef(null);
   const panzoomRef = useRef(null);
   const previousDiffHighlights = useRef([]);
 
-  const highlightNodes = (elements, lineages, allNodes) => {
-
+  const highlightNodes = (
+    elements,
+    lineages,
+    allNodes,
+    highlight_links = true
+  ) => {
     // If elements is null, make all nodes gray and exit
     if (!elements) {
       // Apply the filter to all nodes initially
       allNodes.forEach((node) => {
-        node.setAttribute("style", "filter: grayscale(100%) brightness(50%)");
+        node.setAttribute('style', 'filter: grayscale(100%) brightness(50%)');
       });
       return;
     }
@@ -23,58 +32,80 @@ const GraphViewer = ({ graph, containerId, onNodeHighlight, diffHighlights, sour
     if (!Array.isArray(elements)) {
       elements = [elements];
     }
-  
+
     // Apply the filter to all nodes initially
     allNodes.forEach((node) => {
-      node.setAttribute("style", "filter: grayscale(100%) brightness(50%)");
+      node.setAttribute('style', 'filter: grayscale(100%) brightness(50%)');
     });
-  
+
     const allConnectedNodes = new Set();
-  
-    elements.forEach(el => {
-      let maybeLineage = lineages.get(el);
-      if (maybeLineage) {
-        let lineage = maybeLineage[0];
-        lineage.forEach((node) => {
-          allConnectedNodes.add(node);
-        });
-      } else {
-        let subgraphs = new Set();
-        let subgraph = document.querySelector("." + [...el.classList].filter((maybeSubgraph) => maybeSubgraph.startsWith("cluster_"))[0]);
-        if (subgraph) {
-          subgraphs.add(subgraph);
-        }
-        let seen_subgraphs = recurseLinks(el, new Set(), subgraphs);
-        let connected = seen_subgraphs[0];
-        subgraphs = seen_subgraphs[1];
-  
-        // Get one set of forward links
-        let edges = [...el.classList].filter((maybeLink) => maybeLink.startsWith("linkSource"));
-        let linkTargets = edges.map((edge) => {
-          return "svg .linkTarget" + edge.slice(10);
-        }).join(", ");
-  
-        if (linkTargets.length > 0) {
-          let linksElems = Array.from(document.querySelectorAll(linkTargets)).flat(Infinity);
-          linksElems.forEach((linkElem) => {
-            connected.add(linkElem);
-            let subgraph = document.querySelector("." + [...el.classList].filter((maybeSubgraph) => maybeSubgraph.startsWith("cluster_"))[0]);
-            if (subgraph) {
-              subgraphs.add(subgraph);
-            }
+
+    elements.forEach((el) => {
+      if (highlight_links) {
+        // get all connected nodes and add them to the set for highlighting
+        let maybeLineage = lineages.get(el);
+        if (maybeLineage) {
+          let lineage = maybeLineage[0];
+          lineage.forEach((node) => {
+            allConnectedNodes.add(node);
+          });
+        } else {
+          let subgraphs = new Set();
+          let subgraph = document.querySelector(
+            '.' +
+              [...el.classList].filter((maybeSubgraph) =>
+                maybeSubgraph.startsWith('cluster_')
+              )[0]
+          );
+          if (subgraph) {
+            subgraphs.add(subgraph);
+          }
+          let seen_subgraphs = recurseLinks(el, new Set(), subgraphs);
+          let connected = seen_subgraphs[0];
+          subgraphs = seen_subgraphs[1];
+
+          // Get one set of forward links
+          let edges = [...el.classList].filter((maybeLink) =>
+            maybeLink.startsWith('linkSource')
+          );
+          let linkTargets = edges
+            .map((edge) => {
+              return '#mermaid .linkTarget' + edge.slice(10);
+            })
+            .join(', ');
+
+          if (linkTargets.length > 0) {
+            let linksElems = Array.from(
+              document.querySelectorAll(linkTargets)
+            ).flat(Infinity);
+            linksElems.forEach((linkElem) => {
+              connected.add(linkElem);
+              let subgraph = document.querySelector(
+                '.' +
+                  [...el.classList].filter((maybeSubgraph) =>
+                    maybeSubgraph.startsWith('cluster_')
+                  )[0]
+              );
+              if (subgraph) {
+                subgraphs.add(subgraph);
+              }
+            });
+          }
+
+          lineages.set(el, [connected, subgraphs]);
+          connected.forEach((node) => {
+            allConnectedNodes.add(node);
           });
         }
-  
-        lineages.set(el, [connected, subgraphs]);
-        connected.forEach((node) => {
-          allConnectedNodes.add(node);
-        });
+      } else {
+        // just add the lone element
+        allConnectedNodes.add(el);
       }
     });
-  
+
     // Remove the style for all connected nodes
     allConnectedNodes.forEach((node) => {
-      node.removeAttribute("style");
+      node.removeAttribute('style');
     });
   };
 
@@ -84,16 +115,27 @@ const GraphViewer = ({ graph, containerId, onNodeHighlight, diffHighlights, sour
     } else {
       seen.add(elem);
     }
-    let edges = [...elem.classList].filter((maybeLink) => maybeLink.startsWith("linkTarget"));
-    let subgraph = document.querySelector("." + [...elem.classList].filter((maybeSubgraph) => maybeSubgraph.startsWith("cluster_"))[0]);
+    let edges = [...elem.classList].filter((maybeLink) =>
+      maybeLink.startsWith('linkTarget')
+    );
+    let subgraph = document.querySelector(
+      '.' +
+        [...elem.classList].filter((maybeSubgraph) =>
+          maybeSubgraph.startsWith('cluster_')
+        )[0]
+    );
     if (subgraph) {
       subgraphs.add(subgraph);
     }
-    let linkSources = edges.map((edge) => {
-      return "svg .linkSource" + edge.slice(10);
-    }).join(", ");
+    let linkSources = edges
+      .map((edge) => {
+        return '#mermaid .linkSource' + edge.slice(10);
+      })
+      .join(', ');
     if (linkSources.length > 0) {
-      let linksElems = Array.from(document.querySelectorAll(linkSources)).flat(Infinity);
+      let linksElems = Array.from(document.querySelectorAll(linkSources)).flat(
+        Infinity
+      );
       linksElems.map((linkElem) => {
         let ret = recurseLinks(linkElem, seen, subgraphs);
         seen = ret[0];
@@ -110,7 +152,7 @@ const GraphViewer = ({ graph, containerId, onNodeHighlight, diffHighlights, sour
     container.innerHTML = ''; // Clear previous content
     let modifiedGraph = graph;
     if (diffHighlights.length > 0) {
-      diffHighlights.forEach(highlight => {
+      diffHighlights.forEach((highlight) => {
         const [style, position] = highlight.split(' ');
         const regex = new RegExp(`(${style} ${position})`, 'g');
         modifiedGraph = modifiedGraph.replace(regex, `$1 fill:#b8a75a,`);
@@ -139,39 +181,48 @@ const GraphViewer = ({ graph, containerId, onNodeHighlight, diffHighlights, sour
         maxScale: 200,
         step: 0.07,
       });
-      element.parentElement.addEventListener('wheel', panzoomRef.current.zoomWithWheel);
-
+      element.parentElement.addEventListener(
+        'wheel',
+        panzoomRef.current.zoomWithWheel
+      );
 
       // Your node highlighting and event listener logic here
       // Highlighting logic
-      const allSubgraphs = Array.from(document.querySelectorAll(".subgraph:not(.node)"));
+      const allSubgraphs = Array.from(
+        document.querySelectorAll('.subgraph:not(.node)')
+      );
       allSubgraphs.map((subgraph) => {
-        let label = subgraph.querySelector("*> .nodeLabel");
+        let label = subgraph.querySelector('*> .nodeLabel');
         let description = label.innerHTML;
-        let color = "#" + description.split("bgcolor_")[1];
+        let color = '#' + description.split('bgcolor_')[1];
         Array.from(subgraph.childNodes).map((node) => {
-          if (Array.from(node.classList).includes("node")) {
+          if (Array.from(node.classList).includes('node')) {
             node.style.fill = color;
           }
         });
-        if (description) { // Ensure description is not empty
+        if (description) {
+          // Ensure description is not empty
           subgraph.classList.add(description);
         }
-        label.innerHTML = "";
+        label.innerHTML = '';
       });
 
-      Array.from(document.querySelectorAll(".path")).map((path) => {
-        path.setAttribute("style", "stroke: orange;");
+      Array.from(document.querySelectorAll('#mermaid .path')).map((path) => {
+        path.setAttribute('style', 'stroke: orange;');
       });
 
-      const allNodes = Array.from(document.querySelectorAll('svg .node:not(.subgraph)'));
+      const allNodes = Array.from(
+        document.querySelectorAll('#mermaid .node:not(.subgraph)')
+      );
       const lineages = new Map();
 
       // Add event listeners
-      allNodes.forEach(function(el) {
-        el.addEventListener("mouseenter", (event) => {
+      allNodes.forEach(function (el) {
+        el.addEventListener('mouseenter', (event) => {
           // Find the class that matches the pattern loc_0_108_113
-          const locClass = [...el.classList].find(cls => cls.match(/loc_\d+_\d+_\d+/));
+          const locClass = [...el.classList].find((cls) =>
+            cls.match(/loc_\d+_\d+_\d+/)
+          );
           let loc = null;
           let forks = [];
 
@@ -181,29 +232,32 @@ const GraphViewer = ({ graph, containerId, onNodeHighlight, diffHighlights, sour
             loc = {
               file_number: locMatch[1],
               start: locMatch[2],
-              end: locMatch[3]
+              end: locMatch[3],
             };
           }
 
-          const forksClasses = [...el.classList].filter(cls => cls.match(/fork_\d+_\d+_\d+_(true|false)$/));
-          forksClasses.forEach(forksClass => {
-            const forkMatch = forksClass.match(/fork_(\d+)_(\d+)_(\d+)_(true|false)$/);
+          const forksClasses = [...el.classList].filter((cls) =>
+            cls.match(/fork_\d+_\d+_\d+_(true|false)$/)
+          );
+          forksClasses.forEach((forksClass) => {
+            const forkMatch = forksClass.match(
+              /fork_(\d+)_(\d+)_(\d+)_(true|false)$/
+            );
             // console.log(`entered ${forkMatch[1]} ${forkMatch[2]} ${forkMatch[3]} ${forkMatch[4]}`);
             forks.push({
               file_number: forkMatch[1],
               start: forkMatch[2],
               end: forkMatch[3],
-              edge: forkMatch[4] === "true"
+              edge: forkMatch[4] === 'true',
             });
           });
 
           onNodeHighlight(loc, forks);
-          highlightNodes(el, lineages, allNodes);
+          highlightNodes(el, lineages, allNodes, true);
         });
 
-        el.addEventListener("mouseleave", (event) => {
+        el.addEventListener('mouseleave', (event) => {
           // Call onNodeHighlight with null
-          // console.log("mouseleave");
           onNodeHighlight(null, []);
 
           let maybeLineage = lineages.get(el);
@@ -213,13 +267,12 @@ const GraphViewer = ({ graph, containerId, onNodeHighlight, diffHighlights, sour
             allNodes.map((node) => {
               if (lineage.has(node)) {
               } else {
-                node.removeAttribute("style");
+                node.removeAttribute('style');
               }
             });
           }
         });
       });
-
     } catch (error) {
       console.error(error);
     }
@@ -228,7 +281,10 @@ const GraphViewer = ({ graph, containerId, onNodeHighlight, diffHighlights, sour
   useEffect(() => {
     lazySortedLocsRef.current = null;
 
-    if (JSON.stringify(diffHighlights) !== JSON.stringify(previousDiffHighlights.current)) {
+    if (
+      JSON.stringify(diffHighlights) !==
+      JSON.stringify(previousDiffHighlights.current)
+    ) {
       previousDiffHighlights.current = diffHighlights;
       if (graph) {
         renderMermaid();
@@ -244,21 +300,25 @@ const GraphViewer = ({ graph, containerId, onNodeHighlight, diffHighlights, sour
       // find all loc_ classes and sort them by file_number, start, then start-end minimizing the difference between start and end.
       //   and then cache the sorted list of nodes
       if (!lazySortedLocsRef.current) {
-        const allLocs = Array.from(document.querySelectorAll('svg .node:not(.subgraph)'))
-          .map(node => {
-            const locClass = [...node.classList].find(cls => cls.match(/loc_\d+_\d+_\d+/));
+        const allLocs = Array.from(
+          document.querySelectorAll('#mermaid .node:not(.subgraph)')
+        )
+          .map((node) => {
+            const locClass = [...node.classList].find((cls) =>
+              cls.match(/loc_\d+_\d+_\d+/)
+            );
             if (locClass) {
               const locMatch = locClass.match(/loc_(\d+)_(\d+)_(\d+)/);
               return {
                 node,
                 file_number: parseInt(locMatch[1], 10),
                 start: parseInt(locMatch[2], 10),
-                end: parseInt(locMatch[3], 10)
+                end: parseInt(locMatch[3], 10),
               };
             }
             return null;
           })
-          .filter(loc => loc !== null)
+          .filter((loc) => loc !== null)
           .sort((a, b) => {
             if (a.file_number !== b.file_number) {
               return a.file_number - b.file_number;
@@ -266,7 +326,7 @@ const GraphViewer = ({ graph, containerId, onNodeHighlight, diffHighlights, sour
             if (a.start !== b.start) {
               return a.start - b.start;
             }
-            return (a.end - a.start) - (b.end - b.start);
+            return a.end - a.start - (b.end - b.start);
           });
 
         lazySortedLocsRef.current = allLocs;
@@ -300,23 +360,33 @@ const GraphViewer = ({ graph, containerId, onNodeHighlight, diffHighlights, sour
       }, []);
 
       if (closestNodes.length > 0) {
-        const allNodes = Array.from(document.querySelectorAll('svg .node:not(.subgraph)'));
+        // highlight these closest nodes
+        const allNodes = Array.from(
+          document.querySelectorAll('#mermaid .node:not(.subgraph)')
+        );
         const lineages = new Map();
-        const closestNodesNodes = closestNodes.map(node => node.node);
-        highlightNodes(closestNodesNodes, lineages, allNodes);
+        const closestNodesNodes = closestNodes.map((node) => node.node);
+        highlightNodes(closestNodesNodes, lineages, allNodes, false);
       } else {
-        const allNodes = Array.from(document.querySelectorAll('svg .node:not(.subgraph)'));
-        highlightNodes(null, new Map(), allNodes);
+        // pyrometer has no related nodes from the source position, so just de-highlight all nodes
+        const allNodes = Array.from(
+          document.querySelectorAll('#mermaid .node:not(.subgraph)')
+        );
+        highlightNodes(null, new Map(), allNodes, false);
       }
     }
   }, [sourceHoverPos]);
 
   return (
     <div
-      id={containerId}
       ref={containerRef}
       className="graph-visualizer"
-      style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        height: '100%',
+      }}
     ></div>
   );
 };
