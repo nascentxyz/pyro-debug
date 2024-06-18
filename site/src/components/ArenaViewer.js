@@ -21,13 +21,10 @@ const ArenaViewer = ({ arena }) => {
   };
 
   function getEdgePathIndex(linkStart, linkEnd, linkWeight) {
-    console.log('finding edge path index for', linkStart, linkEnd, linkWeight);
     const pathParents = document.querySelectorAll(`#arena .edgePath > path`);
     const labelParents = document.querySelectorAll(`#arena .edgePath > g`);
     let index = 0;
     for (const pathParent of pathParents) {
-      // console.log("checking pathParent", pathParent, pathParent.classList);
-      // console.log("check is", pathParent.classList.contains(`${linkStart}`), pathParent.classList.contains(`${linkEnd}`));
       if (
         pathParent.classList.contains(`${linkStart}`) &&
         pathParent.classList.contains(`${linkEnd}`)
@@ -37,21 +34,8 @@ const ArenaViewer = ({ arena }) => {
           'foreignObject > div > span'
         );
         const spanText = spanElement ? spanElement.innerText : '';
-        console.log('checking labelParent', labelParents[index], spanText);
-        console.log(
-          'check is',
-          spanText === linkWeight || (!linkWeight && spanText === '')
-        );
         if (spanText === linkWeight || (!linkWeight && spanText === '')) {
           // either the text matches or both the text and weight are empty
-          console.log(
-            'FOUND edge path index for',
-            linkStart,
-            linkEnd,
-            linkWeight,
-            'at',
-            index
-          );
           return index;
         }
       }

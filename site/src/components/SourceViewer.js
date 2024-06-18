@@ -54,7 +54,11 @@ const SourceViewer = ({
         class: 'loc-highlight',
       });
 
-      const forkDecos = forksToHighlight
+      const filteredForksToHighlight = forksToHighlight.filter(
+        (fork) => Number(fork.file_number) === Number(fileNumber)
+      );
+
+      const forkDecos = filteredForksToHighlight
         .map((fork) => {
           const { file_number: fn, start: s, end: e, edge } = fork;
           const parsedFileNumber = parseInt(fn, 10);
@@ -157,7 +161,9 @@ const SourceViewer = ({
         viewRef.current.destroy();
       };
     }
-  }, [sourceCode, locToHighlight, forksToHighlight, onHover]);
+  }, [sourceCode, locToHighlight, forksToHighlight]);
+
+
 
   return <div ref={editorRef} className="editor-container" />;
 };

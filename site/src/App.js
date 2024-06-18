@@ -167,15 +167,12 @@ function App() {
         Number(locToHighlight.file_number) === Number(config.file_number)
           ? locToHighlight
           : null;
-      const filteredForksToHighlight = forksToHighlight.filter(
-        (fork) => Number(fork.file_number) === Number(config.file_number)
-      );
       return (
         <SourceViewer
           sourceCode={config.sourceCode}
           fileNumber={config.file_number}
           locToHighlight={loc}
-          forksToHighlight={filteredForksToHighlight}
+          forksToHighlight={forksToHighlight}
           onHover={handleHover}
         />
       );
@@ -204,8 +201,12 @@ function App() {
   };
 
   const handleNodeHighlight = (loc, forks) => {
-    setLocToHighlight(loc || null);
-    setForksToHighlight(forks || []);
+    if (JSON.stringify(loc) !== JSON.stringify(locToHighlight)) {
+      setLocToHighlight(loc || null);
+    }
+    if (JSON.stringify(forks) !== JSON.stringify(forksToHighlight)) {
+      setForksToHighlight(forks || []);
+    }
   };
 
   const handleDiffHighlights = (diffHighlights) => {
