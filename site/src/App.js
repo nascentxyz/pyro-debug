@@ -201,12 +201,8 @@ function App() {
   };
 
   const handleNodeHighlight = (loc, forks) => {
-    if (JSON.stringify(loc) !== JSON.stringify(locToHighlight)) {
-      setLocToHighlight(loc || null);
-    }
-    if (JSON.stringify(forks) !== JSON.stringify(forksToHighlight)) {
-      setForksToHighlight(forks || []);
-    }
+    setLocToHighlight(loc);
+    setForksToHighlight(forks);
   };
 
   const handleDiffHighlights = (diffHighlights) => {

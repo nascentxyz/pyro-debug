@@ -162,7 +162,7 @@ const GraphViewer = ({
       maxTextSize: 1000000,
       maxEdges: 10000,
     });
-
+    // console.log(modifiedGraph);
     try {
       const { svg } = await mermaid.render('mermaid', modifiedGraph);
       const element = document.createElement('div');

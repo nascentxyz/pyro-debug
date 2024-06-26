@@ -7,8 +7,8 @@ import { solidity } from '@replit/codemirror-lang-solidity';
 import '../App.css';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { RangeSetBuilder } from '@codemirror/state';
+import { useMemo } from 'react';
 
-// Add the highlight theme to the editor state
 const SourceViewer = ({
   sourceCode,
   fileNumber,
@@ -19,6 +19,10 @@ const SourceViewer = ({
   const editorRef = useRef(null);
   const viewRef = useRef(null);
   const fileNumberRef = useRef(null);
+
+  // Memoize locToHighlight and forksToHighlight to avoid unnecessary re-renders
+  const memoizedLocToHighlight = useMemo(() => locToHighlight, [locToHighlight]);
+  const memoizedForksToHighlight = useMemo(() => forksToHighlight, [forksToHighlight]);
 
   useEffect(() => {
     if (
@@ -33,8 +37,8 @@ const SourceViewer = ({
 
       let start = 0;
       let end = 0;
-      if (locToHighlight) {
-        const { file_number: fn, start: s, end: e } = locToHighlight;
+      if (memoizedLocToHighlight) {
+        const { file_number: fn, start: s, end: e } = memoizedLocToHighlight;
         const parsedFileNumber = parseInt(fn, 10);
         const parsedStart = parseInt(s, 10);
         const parsedEnd = parseInt(e, 10);
@@ -46,7 +50,7 @@ const SourceViewer = ({
           start = parsedStart;
           end = parsedEnd;
         } else {
-          console.error('Invalid locToHighlight values', locToHighlight);
+          console.error('Invalid locToHighlight values', memoizedLocToHighlight);
         }
       }
 
@@ -54,7 +58,7 @@ const SourceViewer = ({
         class: 'loc-highlight',
       });
 
-      const filteredForksToHighlight = forksToHighlight.filter(
+      const filteredForksToHighlight = memoizedForksToHighlight.filter(
         (fork) => Number(fork.file_number) === Number(fileNumber)
       );
 
@@ -161,9 +165,7 @@ const SourceViewer = ({
         viewRef.current.destroy();
       };
     }
-  }, [sourceCode, locToHighlight, forksToHighlight]);
-
-
+  }, [sourceCode, memoizedLocToHighlight, memoizedForksToHighlight]);
 
   return <div ref={editorRef} className="editor-container" />;
 };
