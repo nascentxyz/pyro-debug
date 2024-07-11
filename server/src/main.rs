@@ -1,8 +1,9 @@
-use actix_web::{web, App, HttpServer, Responder, HttpResponse, get, post};
-use serde::{Deserialize, Serialize};
-use std::{collections::HashSet, path::PathBuf, sync::Mutex};
-use std::collections::VecDeque;
+use actix_cors::Cors;
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use env_logger::Env;
+use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
+use std::{collections::HashSet, path::PathBuf, sync::Mutex};
 use tracing::{debug, info};
 #[derive(Serialize, Deserialize, Debug)]
 struct GraphMessage {
@@ -93,7 +94,6 @@ async fn get_arena(state: web::Data<AppState>) -> impl Responder {
     HttpResponse::Ok().json(&*arena)
 }
 
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(Env::default().default_filter_or("debug"));
@@ -102,11 +102,17 @@ async fn main() -> std::io::Result<()> {
     let shared_state = web::Data::new(AppState {
         graphs: Mutex::new(VecDeque::new()),
         sources: Mutex::new(HashSet::new()),
-        arena: Mutex::new(ArenaMessage { arena: "Empty".to_string() }),
+        arena: Mutex::new(ArenaMessage {
+            arena: "Empty".to_string(),
+        }),
     });
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allowed_origin("localhost:8545")
+            .allowed_origin("http://localhost:8545");
         App::new()
+            .wrap(cors)
             .app_data(shared_state.clone()) // Clone the shared state for each worker
             .service(add_graph)
             .service(add_source)

@@ -219,15 +219,17 @@ const ArenaViewer = ({ arena }) => {
 
       // Iterate over each edge definition
       edges_start_end_weight.forEach(([linkStart, linkEnd, weight]) => {
-        const paths = document.querySelectorAll(
-          `#arena .edgePath > path.${linkStart}.${linkEnd}`
-        );
-        paths.forEach((path) => {
-          const style = getStyleForEdge(weight);
-          if (style) {
-            path.setAttribute('style', style);
-          }
-        });
+        if (linkStart !== undefined && linkEnd !== undefined) {
+          const paths = document.querySelectorAll(
+            `#arena .edgePath > path.${linkStart}.${linkEnd}`
+          );
+          paths.forEach((path) => {
+            const style = getStyleForEdge(weight);
+            if (style) {
+              path.setAttribute('style', style);
+            }
+          });
+        }
       });
 
       const allNodes = Array.from(
@@ -236,35 +238,39 @@ const ArenaViewer = ({ arena }) => {
       const lineages = new Map();
 
       // Add event listeners
-      allNodes.forEach(function (el) {
-        el.addEventListener('mouseenter', (event) => {
-          highlightNodesArena(
-            el,
-            lineages,
-            allNodes,
-            edges_start_end_weight,
-            true
-          );
-        });
-
-        el.addEventListener('mouseleave', (event) => {
-          allNodes.map((node) => {
-            node.removeAttribute('style');
+      if (allNodes.length > 1) {
+        allNodes.forEach(function (el) {
+          el.addEventListener('mouseenter', (event) => {
+            highlightNodesArena(
+              el,
+              lineages,
+              allNodes,
+              edges_start_end_weight,
+              true
+            );
           });
 
-          // also remove arena-edge-excluded from all paths and labels
-          document
-            .querySelectorAll('#arena .edgePath > path')
-            .forEach((path) => {
-              path.classList.remove('arena-edge-excluded');
+          el.addEventListener('mouseleave', (event) => {
+            allNodes.map((node) => {
+              node.removeAttribute('style');
             });
-          document.querySelectorAll('#arena .edgePath > g').forEach((label) => {
-            label.classList.remove('arena-edge-excluded');
+
+            // also remove arena-edge-excluded from all paths and labels
+            document
+              .querySelectorAll('#arena .edgePath > path')
+              .forEach((path) => {
+                path.classList.remove('arena-edge-excluded');
+              });
+            document
+              .querySelectorAll('#arena .edgePath > g')
+              .forEach((label) => {
+                label.classList.remove('arena-edge-excluded');
+              });
           });
         });
-      });
+      }
     } catch (error) {
-      console.error(error);
+      console.error(error, arena.arena);
     }
   };
 
